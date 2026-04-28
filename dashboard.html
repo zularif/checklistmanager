@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard - {{ selected_year }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Factory Inspection Record &mdash; {{ selected_year }}</h2>
+    <div class="dashboard-controls">
+        <div class="year-selector">
+            {% for y in year_range %}
+            <a href="{{ url_for('dashboard', year=y) }}"
+               class="year-btn {% if y == selected_year %}active{% endif %}">{{ y }}</a>
+            {% endfor %}
+        </div>
+        <a href="{{ url_for('export_excel', year=selected_year) }}" class="btn btn-export">
+            &#8595; Export Excel ({{ selected_year }})
+        </a>
+    </div>
+</div>
+
+<div class="excel-note">
+    <span class="note-icon">&#9432;</span>
+    <span class="tick-done">&#10004;</span> = completed &nbsp;&nbsp;
+    <span class="tick-fail">&#10008;</span> = not completed &nbsp;&nbsp;
+    <span class="tick-future">&mdash;</span> = upcoming &nbsp;&nbsp;
+    Hover &#10004; or &#10008; to see count &amp; technician.
+</div>
+
+{% for section in sections %}
+<div class="excel-section">
+    <div class="excel-section-header section-{{ section.frequency | lower | replace('-', '') | replace(' ', '') }}">
+        <span>
+            {% if section.frequency == 'Daily' %}&#128197;
+            {% elif section.frequency == 'Weekly' %}&#128198;
+            {% elif section.frequency == 'Monthly' %}&#128336;
+            {% elif section.frequency == 'Quarterly' %}&#128197;
+            {% elif section.frequency == 'Semi-Annual' %}&#9881;
+            {% elif section.frequency == 'Annual' %}&#127881;
+            {% elif section.frequency == 'Bi-Annual' %}&#8987;
+            {% endif %}
+            {{ section.frequency }} Tasks
+        </span>
+        <span class="section-freq-note">
+            {% if section.frequency == 'Quarterly' %}(4× / year — cells repeat per quarter)
+            {% elif section.frequency == 'Semi-Annual' %}(2× / year — cells repeat per half)
+            {% elif section.frequency == 'Annual' %}(1× / year — all cells show annual total)
+            {% elif section.frequency == 'Bi-Annual' %}(1× / 2 years — shows 2-year total)
+            {% endif %}
+        </span>
+    </div>
+
+    {% for phase_key, phase_rows in [('P1', section.p1), ('P2', section.p2)] %}
+    {% if phase_rows %}
+    <div class="excel-phase-block">
+        <table class="excel-table">
+            <thead>
+                <tr>
+                    <th class="col-no">No.</th>
+                    <th class="col-loc">Location</th>
+                    <th class="col-cycle">Cycle</th>
+                    {% for m in months %}
+                    <th class="col-month {% if loop.index == current_month and selected_year == current_year %}col-current{% endif %}">{{ m }}</th>
+                    {% endfor %}
+                </tr>
+                <tr class="phase-row">
+                    <td colspan="{{ 3 + months|length }}" class="phase-banner {{ 'p1-banner' if phase_key == 'P1' else 'p2-banner' }}">
+                        Phase {{ phase_key[-1] }}
+                    </td>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in phase_rows %}
+                <tr>
+                    <td class="col-no td-num">{{ loop.index }}</td>
+                    <td class="col-loc td-location">
+                        {{ row.location }}
+                        {% if row.vendor %}
+                        <div class="dash-vendor">&#127970; {{ row.vendor }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="col-cycle">
+                        <span class="freq-badge freq-{{ row.frequency | lower | replace('-','') | replace(' ','') }}">{{ row.frequency }}</span>
+                    </td>
+                    {% for cell in row.cells %}
+                    <td class="col-month
+                        {% if cell.future %}cell-future
+                        {% elif cell.complete %}cell-done
+                        {% else %}cell-fail{% endif %}">
+                        {% if cell.future %}
+                            <span class="tick-future">&mdash;</span>
+                        {% elif cell.complete %}
+                            <span class="tick-done"
+                                  title="✔ {{ cell.count }}/{{ cell.required }} time{{ 's' if cell.count != 1 else '' }}&#10;Tech: {{ cell.techs | join(', ') }}">&#10004;</span>
+                        {% else %}
+                            <span class="tick-fail"
+                                  title="✘ {{ cell.count }}/{{ cell.required }} — not met">&#10008;</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endfor %}
+
+{% if not sections %}
+<div class="empty-state">
+    <p>No tasks found. <a href="{{ url_for('add_task') }}">Add tasks</a> to see the summary.</p>
+</div>
+{% endif %}
+
+<div class="legend">
+    <h4>Completion Requirements</h4>
+    <ul>
+        <li><strong>Daily</strong> &mdash; Count &ge; days in the month</li>
+        <li><strong>Weekly</strong> &mdash; Count &ge; 4 per month</li>
+        <li><strong>Monthly</strong> &mdash; Count &ge; 1 per month</li>
+        <li><strong>Quarterly</strong> &mdash; Count &ge; 1 per quarter (Q1–Q4); each quarter's count shown in all 3 months</li>
+        <li><strong>Semi-Annual</strong> &mdash; Count &ge; 1 per half-year (H1/H2); count shown in all 6 months</li>
+        <li><strong>Annual</strong> &mdash; Count &ge; 1 per year; same count shown in all 12 months</li>
+        <li><strong>Bi-Annual</strong> &mdash; Count &ge; 1 per 2-year period (this year + previous year combined)</li>
+    </ul>
+</div>
+{% endblock %}

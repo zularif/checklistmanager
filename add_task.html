@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Add Task{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Add New Task</h2>
+</div>
+
+<div class="form-card">
+    <form method="POST" action="{{ url_for('add_task') }}">
+
+        <div class="form-group">
+            <label for="location">Location / Name</label>
+            <input type="text" id="location" name="location"
+                   placeholder="e.g. Transformer Room 33kV P1"
+                   required value="{{ request.form.get('location', '') }}">
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="frequency">Frequency</label>
+                <select id="frequency" name="frequency" required>
+                    <option value="">-- Select --</option>
+                    {% for freq in all_frequencies %}
+                    <option value="{{ freq }}"
+                        {% if request.form.get('frequency') == freq %}selected{% endif %}>
+                        {{ freq }}
+                        {% if freq == 'Quarterly' %} (4x / year)
+                        {% elif freq == 'Semi-Annual' %} (2x / year)
+                        {% elif freq == 'Annual' %} (1x / year)
+                        {% elif freq == 'Bi-Annual' %} (1x / 2 years)
+                        {% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="type">Type</label>
+                <select id="type" name="type" required onchange="toggleVendor(this.value)">
+                    <option value="Internal" {% if request.form.get('type','Internal') == 'Internal' %}selected{% endif %}>Internal</option>
+                    <option value="External" {% if request.form.get('type') == 'External' %}selected{% endif %}>External</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group" id="vendor-group"
+             style="display:{{ 'block' if request.form.get('type') == 'External' else 'none' }}">
+            <label for="vendor">Vendor Name <span class="required-star">*</span></label>
+            <input type="text" id="vendor" name="vendor"
+                   placeholder="e.g. ABC Engineering Sdn Bhd"
+                   value="{{ request.form.get('vendor', '') }}">
+            <small class="form-hint">Required for External tasks</small>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Add Task</button>
+            <a href="{{ url_for('task_list') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleVendor(value) {
+    document.getElementById('vendor-group').style.display = value === 'External' ? 'block' : 'none';
+    document.getElementById('vendor').required = value === 'External';
+}
+// Set on page load
+toggleVendor(document.getElementById('type').value);
+</script>
+{% endblock %}

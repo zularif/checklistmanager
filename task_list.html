@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block title %}Inspection Checklist - {{ month_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Factory Inspection Checklist</h2>
+    <span class="badge-month">{{ month_name }}</span>
+</div>
+
+<div class="phase-legend">
+    <span class="phase-tag p1-tag">P1 &mdash; Phase 1</span>
+    <span class="phase-tag p2-tag">P2 &mdash; Phase 2</span>
+    <span class="type-tag internal-tag">Internal</span>
+    <span class="type-tag external-tag">External</span>
+    <span class="hint-text">&#9432; Enter technician name then click Complete</span>
+</div>
+
+{% for frequency in all_frequencies %}
+    {% set p1_tasks = phase_groups[frequency]['P1'] %}
+    {% set p2_tasks = phase_groups[frequency]['P2'] %}
+    {% set all_tasks = p1_tasks + p2_tasks %}
+    {% if all_tasks %}
+    <section class="task-group">
+        <div class="group-header group-{{ frequency | lower | replace('-', '') | replace(' ', '') }}">
+            <span class="group-icon">
+                {% if frequency == 'Daily' %}&#128197;
+                {% elif frequency == 'Weekly' %}&#128198;
+                {% elif frequency == 'Monthly' %}&#128336;
+                {% elif frequency == 'Quarterly' %}&#128197;
+                {% elif frequency == 'Semi-Annual' %}&#9881;
+                {% elif frequency == 'Annual' %}&#127881;
+                {% elif frequency == 'Bi-Annual' %}&#128197;
+                {% endif %}
+            </span>
+            <h3>{{ frequency }} Inspection</h3>
+            {% set done_count = all_tasks | selectattr('complete') | list | length %}
+            <span class="group-progress">{{ done_count }}/{{ all_tasks | length }} done</span>
+        </div>
+
+        {% for phase_key, phase_tasks in [('P1', p1_tasks), ('P2', p2_tasks)] %}
+        {% if phase_tasks %}
+        <div class="phase-section">
+            <div class="phase-label {{ 'p1-label' if phase_key == 'P1' else 'p2-label' }}">Phase {{ phase_key[-1] }}</div>
+            <div class="task-table-wrapper">
+                <table class="task-table">
+                    <thead>
+                        <tr>
+                            <th>Location</th>
+                            <th>Type</th>
+                            <th>Period / Count</th>
+                            <th>Status</th>
+                            <th>Technician &amp; Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in phase_tasks %}
+                        <tr class="{% if task.complete %}row-complete{% endif %}">
+                            <td class="td-location">
+                                {{ task.location }}
+                                {% if task.vendor %}
+                                <div class="vendor-name">&#127970; {{ task.vendor }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="td-type">
+                                <span class="type-badge {{ 'badge-internal' if task.type == 'Internal' else 'badge-external' }}">
+                                    {{ task.type }}
+                                </span>
+                            </td>
+                            <td class="td-count">
+                                {% if task.period_label %}
+                                    <div class="period-label-sm">{{ task.period_label }}</div>
+                                {% endif %}
+                                <div>{{ task.count }}x</div>
+                            </td>
+                            <td class="td-status">
+                                {% if task.complete %}
+                                    <span class="status-done">&#10004; Done</span>
+                                {% else %}
+                                    <span class="status-pending">&#10008; Pending</span>
+                                {% endif %}
+                            </td>
+                            <td class="td-action">
+                                <form method="POST" action="{{ url_for('complete_task', task_id=task.id) }}" class="complete-form">
+                                    <input type="text" name="technician" placeholder="Tech name" class="tech-input" required autocomplete="off">
+                                    <input type="datetime-local" name="completed_date" value="{{ default_dt }}" class="date-input" title="Date &amp; time of completion (change for backdated entry)">
+                                    <button type="submit" class="btn btn-complete">&#10003; Complete</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}" style="display:inline;" onsubmit="return confirm('Delete this task?');">
+                                    <button type="submit" class="btn btn-delete btn-sm">&#215;</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+
+    </section>
+    {% endif %}
+{% endfor %}
+
+{% set has_any = namespace(val=false) %}
+{% for frequency in all_frequencies %}
+    {% if phase_groups[frequency]['P1'] or phase_groups[frequency]['P2'] %}
+        {% set has_any.val = true %}
+    {% endif %}
+{% endfor %}
+{% if not has_any.val %}
+<div class="empty-state">
+    <p>No checklist tasks found. <a href="{{ url_for('add_task') }}">Add a task</a>.</p>
+</div>
+{% endif %}
+{% endblock %}

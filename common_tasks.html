@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}Common Tasks{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Common Tasks</h2>
+    <a href="{{ url_for('add_common_task') }}" class="btn btn-primary">+ New Task</a>
+</div>
+
+<div class="common-info-bar">
+    <p class="common-desc">General maintenance and ad-hoc tasks &mdash; not part of the routine inspection checklist.</p>
+</div>
+
+<!-- Status filter tabs -->
+<div class="filter-tabs">
+    <a href="{{ url_for('common_tasks', status='all') }}"
+       class="filter-tab {% if filter_status == 'all' %}active{% endif %}">
+        All <span class="tab-count">{{ count_map['Open'] + count_map['In Progress'] + count_map['Done'] }}</span>
+    </a>
+    <a href="{{ url_for('common_tasks', status='Open') }}"
+       class="filter-tab {% if filter_status == 'Open' %}active{% endif %}">
+        Open <span class="tab-count">{{ count_map['Open'] }}</span>
+    </a>
+    <a href="{{ url_for('common_tasks', status='In Progress') }}"
+       class="filter-tab {% if filter_status == 'In Progress' %}active{% endif %}">
+        In Progress <span class="tab-count">{{ count_map['In Progress'] }}</span>
+    </a>
+    <a href="{{ url_for('common_tasks', status='Done') }}"
+       class="filter-tab {% if filter_status == 'Done' %}active{% endif %}">
+        Done <span class="tab-count">{{ count_map['Done'] }}</span>
+    </a>
+</div>
+
+{% if tasks %}
+<div class="common-task-list">
+    {% for task in tasks %}
+    <div class="common-task-card status-{{ task.status | replace(' ', '-') | lower }}">
+        <div class="ct-main">
+            <div class="ct-header">
+                <span class="ct-priority priority-{{ task.priority | lower }}">{{ task.priority }}</span>
+                <span class="ct-status-badge status-badge-{{ task.status | replace(' ', '-') | lower }}">{{ task.status }}</span>
+            </div>
+            <div class="ct-title">{{ task.title }}</div>
+            {% if task.description %}
+            <div class="ct-desc">{{ task.description }}</div>
+            {% endif %}
+            <div class="ct-meta">
+                <span>Created: {{ task.created_date[:16] }}</span>
+                {% if task.completed_date %}
+                <span>&nbsp;&mdash;&nbsp;Completed: {{ task.completed_date[:16] }}</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="ct-actions">
+            {% if task.status != 'In Progress' and task.status != 'Done' %}
+            <form method="POST" action="{{ url_for('update_common_task_status', task_id=task.id) }}" style="display:inline;">
+                <input type="hidden" name="status" value="In Progress">
+                <button type="submit" class="btn btn-inprogress">Start</button>
+            </form>
+            {% endif %}
+            {% if task.status != 'Done' %}
+            <form method="POST" action="{{ url_for('update_common_task_status', task_id=task.id) }}" style="display:inline;">
+                <input type="hidden" name="status" value="Done">
+                <button type="submit" class="btn btn-complete">Done</button>
+            </form>
+            {% endif %}
+            {% if task.status == 'Done' %}
+            <form method="POST" action="{{ url_for('update_common_task_status', task_id=task.id) }}" style="display:inline;">
+                <input type="hidden" name="status" value="Open">
+                <button type="submit" class="btn btn-reopen">Reopen</button>
+            </form>
+            {% endif %}
+            <form method="POST" action="{{ url_for('delete_common_task', task_id=task.id) }}" style="display:inline;"
+                  onsubmit="return confirm('Delete this task?');">
+                <button type="submit" class="btn btn-delete">Delete</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    {% if filter_status == 'all' %}
+        <p>No common tasks yet. <a href="{{ url_for('add_common_task') }}">Create your first task</a>.</p>
+    {% else %}
+        <p>No tasks with status "{{ filter_status }}".</p>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
