@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Factory Checklist Manager{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <div class="site-brand">
+                <span class="site-icon">&#9881;</span>
+                <div>
+                    <div class="site-title">Factory Inspection</div>
+                    <div class="site-sub">Checklist Management System</div>
+                </div>
+            </div>
+            <nav>
+                <a href="{{ url_for('task_list') }}" class="nav-link {% if request.endpoint == 'task_list' %}active{% endif %}">
+                    &#128203; Checklist
+                </a>
+                <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                    &#128200; Dashboard
+                </a>
+                <a href="{{ url_for('history') }}" class="nav-link {% if request.endpoint == 'history' %}active{% endif %}">
+                    &#128337; History
+                </a>
+                <a href="{{ url_for('common_tasks') }}" class="nav-link {% if request.endpoint in ('common_tasks', 'add_common_task') %}active{% endif %}">
+                    &#128221; Common Tasks
+                </a>
+                <a href="{{ url_for('add_task') }}" class="nav-link {% if request.endpoint == 'add_task' %}active{% endif %}">
+                    &#43; Add Checklist
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>Factory Inspection Checklist &mdash; Malaysia Time (UTC+8)</p>
+    </footer>
+</body>
+</html>
